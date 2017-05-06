@@ -1,0 +1,33 @@
+{
+  "name": "lazypub",
+  "version": "1.0.0",
+  "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kasp1/LazyPub.git"
+  },
+  "keywords": [
+    "apache",
+    "cordova",
+    "build",
+    "publish",
+    "deploy",
+    "script",
+    "tool",
+    "toolchain",
+    "chain",
+    "step",
+    "android",
+    "ios"
+  ],
+  "author": "Miroslav Kaspar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kasp1/LazyPub/issues"
+  },
+  "homepage": "https://github.com/kasp1/LazyPub#readme"
+}
