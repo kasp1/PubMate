@@ -2,17 +2,19 @@
 const exec = require('child_process').exec
 const commandExists = require('command-exists').sync
 const fs = require('fs')
+const readlineSync = require('readline-sync')
+const path = require('path')
 
-let g = global
+global.g = global
 
 g.log = function (msg)
 {
-  console.log('[LAZYPUB] ' + msg)
+  console.log('[PUBMATE] ' + msg)
 }
 
 g.err = function (msg)
 {
-  console.error('[LAZYPUB] ' + msg)
+  console.error('[PUBMATE] ' + msg)
 }
 
 g.fatal = function (msg)
@@ -22,17 +24,65 @@ g.fatal = function (msg)
   process.exit(1)
 }
 
+g.readPlatformsJson = function() {
+  if (fs.existsSync(path.normalize('platforms'))) {
+    if (fs.existsSync(path.normalize('platforms/platforms.json'))) {
+      return JSON.parse(fs.readFileSync('platforms/platforms.json'))
+    } else {
+      g.fatal("No platforms/platforms.json, add some platforms first noob, e.g.: cordova platform add android 2")
+    }
+  } else {
+    g.fatal("No platforms/platforms.json, add some platforms first noob, e.g.: cordova platform add android 1")
+  }
+}
+
 g.cli = {
   android: {
-    usage: "lazypub android\n- Creates publishable file(s) for the Android version.",
+    usage: "pubmate android\n- Creates publishable file(s) for the Android version.",
     async handler () {
-      g.log('==========')
-      g.log('Android...')
+      let platforms = Object.keys(g.readPlatformsJson())
+
+      if (platforms.indexOf('android') > -1) {
+        g.log('==========')
+        g.log('Android...')
+        await g.steps.android.findJarSigner()
+        await g.steps.android.findZipAligner()
+        await g.steps.android.buildRelease()
+        await g.steps.android.sign()
+        await g.steps.android.align()
+        await g.steps.android.finish()
+      } else {
+        g.log('No Android platform in this Cordova project. You can add it using: cordova plaform add android')
+        let doIt = readlineSync.question('Do you want me to do the job for you? (Y/n): ')
+
+        if (doIt) {
+          g.log('Okay then...')
+
+          let cmd = exec('cordova plaform add android')
+          cmd.stderr.pipe(process.stderr)
+
+          cmd.on('close', async (code) => {
+            if (code > 0) {
+              g.fatal('Cordova died. :\'(')
+            }
+
+            g.log('Done.')
+            await g.steps.android.findJarSigner()
+            await g.steps.android.findZipAligner()
+            await g.steps.android.buildRelease()
+            await g.steps.android.sign()
+            await g.steps.android.align()
+            await g.steps.android.finish()
+          })
+        } else {
+          g.log('Up to you.')
+        }
+      }
     }
   },
 
   ios: {
-    usage: "lazypub ios\n- Creates publishable file(s) for the iOS version.",
+    usage: "pubmate ios\n- Creates publishable file(s) for the iOS version.",
     async handler () {
       g.log('==========')
       g.log('iOS...')
@@ -40,26 +90,42 @@ g.cli = {
   },
 
   all: {
-    usage: "lazypub - Creates publishable files for all platforms.",
+    usage: "pubmate - Creates publishable files for all platforms.",
     async handler () {
-      g.log('Gonna do the job for all platforms...')
-      await g.cli.android.handler()
-      await g.cli.ios.handler()
+      g.log('All platforms, bring it...')
+
+      let platforms = Object.keys(g.readPlatformsJson())
+
+      g.log('Okay, what do we have here...')
+
+      if (platforms.length === 1) {
+        g.log('Just ' + platforms[0] + '.')
+      } else {
+        g.log(Object.keys(platforms).join(', '))
+      }
+
+      g.log("Alright, let's do this.")
+
+      console.log(platforms)
+
+      for (let i in platforms) {
+        await g.cli[platforms[i]].handler()
+      }
     }
   },
 
   help: {
-    usage: "lazypub help <platform>\n- Displays help related to the specified platform command.",
+    usage: "pubmate help <platform>\n- Displays help related to the specified platform command.",
     handler (command) {
       if (!command) {
         if (g.cli[process.argv[3]]) {
           console.log(g.cli[process.argv[3]].usage)
         } else {
-          console.log("LazyPub - turns your Cordova project into publishable file(s).")
+          console.log("PubMate - turns your Cordova project into publishable file(s).")
           console.log('')
           console.log("Run in a Cordova project directory:")
-          console.log("lazypub [platform] # to build project for a specified platform.")
-          console.log("lazypub all # to build project for all platforms listed in your platforms/platforms.json file.")
+          console.log("pubmate [platform] # to build project for a specified platform.")
+          console.log("pubmate all # to build project for all platforms listed in your platforms/platforms.json file.")
           console.log('')
           console.log('Available platforms/commands: ', Object.keys(g.cli).join(', '))
           console.log("apiko help <platform|command> # to read further.")
@@ -88,6 +154,7 @@ g.steps = {
   checkForCordovaProject () {
     return new Promise((resolve, reject) => {
       g.log('Checking if this is a Cordova project directory...')
+
       if (fs.existsSync('config.xml') && fs.existsSync('www')) {
         g.log('Good.')
         resolve()
@@ -109,11 +176,13 @@ g.steps = {
           g.fatal('Cordova died. :\'(')
         }
 
-        g.log('OK.')
+        g.log("OK, let's do this.")
         resolve()
       })
     })
-  }
+  },
+
+  android: require('./android')
 }
 
 async function startup() {
@@ -126,13 +195,17 @@ async function startup() {
         await g.steps.checkForCordovaProject()
         await g.steps.prepareProject()
         await g.cli[process.argv[2]].handler()
-        g.log('Terminating. Hasta la vista.')
+        g.log('Terminating, adios.')
       }
     } else {
       g.cli.help.handler()
     }
   } else {
-    g.cli.help.handler()
+    await g.steps.checkForCordova()
+    await g.steps.checkForCordovaProject()
+    await g.steps.prepareProject()
+    await g.cli.all.handler()
+    g.log('Terminating, adios.')
   }
 }
 
