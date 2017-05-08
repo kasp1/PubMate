@@ -36,6 +36,16 @@ g.readPlatformsJson = function() {
   }
 }
 
+g.readPubmateJson = function() {
+  if (fs.existsSync(path.normalize('platforms'))) {
+    if (fs.existsSync(path.normalize('platforms/platforms.json'))) {
+      return JSON.parse(fs.readFileSync('platforms/platforms.json'))
+    }
+  }
+
+  return false
+}
+
 g.cli = {
   android: {
     usage: "pubmate android\n- Creates publishable file(s) for the Android version.",

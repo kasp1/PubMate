@@ -69,10 +69,13 @@ module.exports = {
         }
 
         if (fs.existsSync(path.normalize(jdkPath + '/Commands/jarsigner'))) {
+          g.steps.android.jdkpath = jdkpath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/Commands/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner'))) {
+          g.steps.android.jdkpath = jdkpath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner.exe'))) {
+          g.steps.android.jdkpath = jdkpath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner.exe')
         } else {
           g.fatal('The jar signer tool is not there (' + path.normalize(jdkPath + '/<bin|Commands>/jarsigner[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
@@ -199,9 +202,49 @@ module.exports = {
     })
   },
 
+  createKeystore () {
+    return new Promise((resolve, reject) => {
+      g.log('Looking for the keytool...')
+
+      resolve()
+    })
+  },
+
   sign () {
     return new Promise((resolve, reject) => {
-      g.log('Signing the APK... Wait, this is not yet implemented.')
+      g.log('Signing the APK...')
+
+      let pubMateJson = g.readPubmateJson()
+      let keystore, key pass
+
+      if (pubMateJson.android.keystore && pubMateJson.android.key && pubMateJson.android.pass) {
+        keystore = pubMateJson.android.keystore
+        pass = pubMateJson.android.pass
+        key = pubMateJson.android.pass
+
+        ...
+      } else {
+        g.log('Okay Houston, problem - there is no signing keystore configured. All APKs need to be signed before submitted to Google Play.')
+
+        if (readlineSync.question('Do you have any existing keystore to use? (Y/n): ') === 'Y') {
+          keystore = readlineSync.question('Where is it (path)?: ')
+
+          if (fs.existsSync(path.normalize(keystore))) {
+            key = readlineSync.question('Where is it (path)?: ')
+            pass = readlineSync.question('Where is it (path)?: ')
+          } else {
+            g.log('This file does not exist. Sort it and try again.')
+          }
+        } else {
+          if (readlineSync.question('Okay, shall we create one for you? (Y/n): ') === 'Y') {
+            g.steps.android.createKeystore().then(() => {
+              g.steps.android.sign()
+            })
+          } else {
+            g.log('Up to you. Sort it and start over.')
+          }
+        }
+      }
     })
   },
 
