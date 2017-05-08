@@ -1,6 +1,6 @@
 {
   "name": "pubmate",
-  "version": "1.0.0",
+  "version": "0.7.0",
   "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
   "main": "index.js",
   "scripts": {
@@ -33,5 +33,9 @@
   "dependencies": {
     "command-exists": "^1.2.2",
     "readline-sync": "^1.4.7"
-  }
+  },
+  "engines": {
+    "node" : ">=7.6.0"
+  },
+  "engineStrict": true
 }
