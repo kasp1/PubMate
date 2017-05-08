@@ -16,7 +16,7 @@ module.exports = {
       let jdkPath = ''
 
       if (commandExists('jarsigner')) {
-        g.steps.android.zipaligner = 'jarsigner'
+        g.steps.android.jarsigner = 'jarsigner'
       } else {
         if (process.env.JAVA_HOME) {
           jdkPath = path.normalize(process.env.JAVA_HOME)
@@ -31,7 +31,7 @@ module.exports = {
               defaultJdkPath = path.normalize('C:/Program Files/Java/')
               if (fs.existsSync(defaultJdkPath)) {
                 let jdks = fs.readdirSync(defaultJdkPath)
-                defaultJdkPath = defaultJdkPath + '/' + jdks[0]
+                defaultJdkPath = path.normalize(defaultJdkPath + '/' + jdks[0])
               } else {
                 defaultJdkPath = '...' // non-existent path, so it doesn't pass the next check
               }
@@ -41,12 +41,12 @@ module.exports = {
               defaultJdkPath = path.normalize('/usr/jdk')
               if (fs.existsSync(defaultJdkPath)) {
                 let jdks = fs.readdirSync(defaultJdkPath)
-                defaultJdkPath = defaultJdkPath + '/' + jdks[0]
+                defaultJdkPath = path.normalize(defaultJdkPath + '/' + jdks[0])
               } else { // alternatively OpenJDK
                 defaultJdkPath = path.normalize('/usr/lib/jvm/open-jdk')
                 if (fs.existsSync(defaultJdkPath)) {
                   let jdks = fs.readdirSync(defaultJdkPath)
-                  defaultJdkPath = defaultJdkPath + '/' + jdks[0]
+                  defaultJdkPath = path.normalize(defaultJdkPath + '/' + jdks[0])
                 } else {
                   defaultJdkPath = '...' // non-existent path, so it doesn't pass the next check
                 }
@@ -55,7 +55,7 @@ module.exports = {
 
           if (fs.existsSync(defaultJdkPath)) {
             jdkPath = defaultJdkPath
-            g.log('Found something at' + defaultJdkPath)
+            g.log('Found something at ' + defaultJdkPath)
           } else {
             g.log('Nada at ' + defaultJdkPath + '.Have you installed JDK?')
             g.log('Alternatively, you can paste your JDK root path here.')
@@ -69,13 +69,13 @@ module.exports = {
         }
 
         if (fs.existsSync(path.normalize(jdkPath + '/Commands/jarsigner'))) {
-          g.steps.android.jdkpath = jdkpath
+          g.steps.android.jdkpath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/Commands/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner'))) {
-          g.steps.android.jdkpath = jdkpath
+          g.steps.android.jdkpath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner.exe'))) {
-          g.steps.android.jdkpath = jdkpath
+          g.steps.android.jdkpath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner.exe')
         } else {
           g.fatal('The jar signer tool is not there (' + path.normalize(jdkPath + '/<bin|Commands>/jarsigner[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
@@ -112,7 +112,7 @@ module.exports = {
 
           if (fs.existsSync(defaultSdkPath)) {
             sdkPath = defaultSdkPath
-            g.log('Found something at' + defaultSdkPath)
+            g.log('Found something at ' + defaultSdkPath)
           } else {
             g.log('Nada at ' + defaultSdkPath + '.Have you installed Android SDK?')
             g.log('Alternatively, you can paste your Android SDK root path here.')
@@ -206,6 +206,8 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Looking for the keytool...')
 
+      
+
       resolve()
     })
   },
@@ -214,17 +216,36 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Signing the APK...')
 
+      if (!fs.existsSync('pubmate')) {
+        fs.mkdirSync('pubmate')
+      }
+
       let pubMateJson = g.readPubmateJson()
-      let keystore, key pass
+      let keystore, key, pass
 
       if (pubMateJson.android.keystore && pubMateJson.android.key && pubMateJson.android.pass) {
         keystore = pubMateJson.android.keystore
         pass = pubMateJson.android.pass
         key = pubMateJson.android.pass
 
-        ...
+        let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + pass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
+        cmd.stderr.pipe(process.stderr)
+
+        cmd.on('close', (code) => {
+          if (code > 0) {
+            g.fatal('Jarsigner died. :\'(')
+          }
+
+          if (fs.existsSync(path.normalize('pubmate/android-release-signed.apk'))) {
+            g.steps.android.signed = path.normalize('pubmate/android-release-signed.apk')
+            g.log("Alright, good.")
+            resolve()
+          } else {
+            g.fatal("The signing failed.")
+          }
+        })
       } else {
-        g.log('Okay Houston, problem - there is no signing keystore configured. All APKs need to be signed before submitted to Google Play.')
+        g.log('Okay Houston, problem - there is no signing keystore configured. All APKs need to be signed before being sent to Google Play.')
 
         if (readlineSync.question('Do you have any existing keystore to use? (Y/n): ') === 'Y') {
           keystore = readlineSync.question('Where is it (path)?: ')
@@ -250,13 +271,37 @@ module.exports = {
 
   align () {
     return new Promise((resolve, reject) => {
-      g.log('Aligning the APK... Wait, this is not yet implemented.')
+      g.log('Zip-aligning the APK...')
+
+      let aligned = path.normalize('pubmate/android-release-signed-aligned.apk')
+
+      let cmd = exec('"'+global.formatPath(global.zipAlignerPath)+'" -f 4 "' + g.steps.android.signed + '" "' + aligned + '"')
+      cmd.stderr.pipe(process.stderr)
+
+      cmd.on('close', (code) => {
+        if (code > 0) {
+          g.fatal('Zipaligner died. :\'(')
+        }
+
+        if (fs.existsSync(aligned)) {
+          g.steps.android.signedAligned = aligned
+          g.log("Awesome.")
+          resolve()
+        } else {
+          g.fatal("The zip aligning failed.")
+        }
+      })
     })
   },
 
   finish () {
     return new Promise((resolve, reject) => {
-      g.log('Some conclusion info.')
+      if (fs.existsSync(g.steps.android.signed)) {
+        fs.unlink(g.steps.android.signed)
+      }
+
+      g.log("Okay you've got your Android APK at: " + g.steps.android.signedAligned)
+      g.log('This is the file you want to upload to Google Play.')
     })
   }
 }

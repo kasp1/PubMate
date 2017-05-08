@@ -116,11 +116,11 @@ g.cli = {
 
       g.log("Alright, let's do this.")
 
-      console.log(platforms)
-
       for (let i in platforms) {
         await g.cli[platforms[i]].handler()
       }
+
+      g.log("PRO TIP: Before you publish your app, make sure your app ID (com.something.something) in your config.xml is what you finally want it to be, you can't change it later.")
     }
   },
 
