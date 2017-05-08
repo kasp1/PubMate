@@ -1,5 +1,5 @@
 {
-  "name": "lazypub",
+  "name": "pubmate",
   "version": "1.0.0",
   "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
   "main": "index.js",
