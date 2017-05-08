@@ -206,7 +206,16 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Looking for the keytool...')
 
-      
+      let keytool
+      if (fs.existsSync(path.normalize(jdkPath + '/Commands/keytool'))) {
+        keytool = path.normalize(jdkPath + '/Commands/keytool')
+      } else if (fs.existsSync(path.normalize(jdkPath + '/bin/keytool'))) {
+        keytool = path.normalize(jdkPath + '/bin/keytool')
+      } else if (fs.existsSync(path.normalize(jdkPath + '/bin/keytool.exe'))) {
+        keytool = path.normalize(jdkPath + '/bin/keytool.exe')
+      } else {
+        g.fatal('The keytool tool is not there (' + path.normalize(jdkPath + '/<bin|Commands>/keytool[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
+      }
 
       resolve()
     })
