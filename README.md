@@ -8,6 +8,18 @@ Build and publish Cordova apps easily. Repetitive deploy simplified. Noob-proof 
 
 Will support Android and iOS @v1.0.
 
+## Progress
+
+```
+       v0.7
+|=======    | 
+       ^   ^
+       |   | 
+       |   iOS support
+       |
+       Android support
+```
+
 ## Usage
 
 All supported platforms (from `platforms/platforms.json`):
