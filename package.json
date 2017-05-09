@@ -1,6 +1,6 @@
 {
   "name": "pubmate",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
   "main": "index.js",
   "scripts": {
@@ -36,5 +36,8 @@
   },
   "engines": {
     "node" : ">=7.6.0"
+  },
+  "bin": {
+    "pubmate": "./index.js"
   }
 }
