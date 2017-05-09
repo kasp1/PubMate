@@ -37,13 +37,20 @@ g.readPlatformsJson = function() {
 }
 
 g.readPubmateJson = function() {
-  if (fs.existsSync(path.normalize('platforms'))) {
-    if (fs.existsSync(path.normalize('platforms/platforms.json'))) {
-      return JSON.parse(fs.readFileSync('platforms/platforms.json'))
+  if (fs.existsSync('pubmate.json')) {
+    if (fs.existsSync('pubmate.json')) {
+      return JSON.parse(fs.readFileSync('pubmate.json'))
     }
   }
 
-  return false
+  return {
+    android: {},
+    ios: {}
+  }
+}
+
+g.savePubmateJson = function(json) {
+  fs.writeFileSync('pubmate.json', JSON.stringify(json))
 }
 
 g.cli = {

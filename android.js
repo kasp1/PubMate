@@ -69,13 +69,13 @@ module.exports = {
         }
 
         if (fs.existsSync(path.normalize(jdkPath + '/Commands/jarsigner'))) {
-          g.steps.android.jdkpath = jdkPath
+          g.steps.android.jdkPath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/Commands/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner'))) {
-          g.steps.android.jdkpath = jdkPath
+          g.steps.android.jdkPath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner')
         } else if (fs.existsSync(path.normalize(jdkPath + '/bin/jarsigner.exe'))) {
-          g.steps.android.jdkpath = jdkPath
+          g.steps.android.jdkPath = jdkPath
           g.steps.android.jarsigner = path.normalize(jdkPath + '/bin/jarsigner.exe')
         } else {
           g.fatal('The jar signer tool is not there (' + path.normalize(jdkPath + '/<bin|Commands>/jarsigner[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
@@ -204,20 +204,100 @@ module.exports = {
 
   createKeystore () {
     return new Promise((resolve, reject) => {
+      if (fs.existsSync('android.keystore')) {
+        g.fatal("You've already got an android.keystore file here. Move it away first.")
+      }
+
       g.log('Looking for the keytool...')
 
       let keytool
-      if (fs.existsSync(path.normalize(jdkPath + '/Commands/keytool'))) {
-        keytool = path.normalize(jdkPath + '/Commands/keytool')
-      } else if (fs.existsSync(path.normalize(jdkPath + '/bin/keytool'))) {
-        keytool = path.normalize(jdkPath + '/bin/keytool')
-      } else if (fs.existsSync(path.normalize(jdkPath + '/bin/keytool.exe'))) {
-        keytool = path.normalize(jdkPath + '/bin/keytool.exe')
+
+      if (commandExists('keytool')) {
+        keytool = 'keytool'
       } else {
-        g.fatal('The keytool tool is not there (' + path.normalize(jdkPath + '/<bin|Commands>/keytool[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
+        if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/Commands/keytool'))) {
+          keytool = path.normalize(g.steps.android.jdkpath + '/Commands/keytool')
+        } else if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/bin/keytool'))) {
+          keytool = path.normalize(g.steps.android.jdkpath + '/bin/keytool')
+        } else if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/bin/keytool.exe'))) {
+          keytool = path.normalize(g.steps.android.jdkpath + '/bin/keytool.exe')
+        } else {
+          g.fatal('The keytool tool is not there (' + path.normalize(g.steps.android.jdkpath + '/<bin|Commands>/keytool[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
+        }
       }
 
-      resolve()
+      g.log('Here it is.')
+
+      g.log('Okay now I need a key alias and key password from you. You will never need to know these two things if you use just PubMate, but you can always find them in pubmate.json.')
+      
+      let alias = readlineSync.question('Key alias. Al-num chars, no spaces. Leave default if not sure. (default): ')
+      if (!alias) {
+        alias = 'default'
+      }
+
+      let pass = readlineSync.question('Store and key pass. Any strong password, it will save to pubmate.json: ')
+      if (!pass) {
+        g.fatal("Well I can't write a password for you. It's a password, your personal (app's) thing. Figure one and start this over.")
+      }
+
+      g.log('Okay, now the drill, input any values you like, these values are not shown anywhere...')
+
+      let CN = readlineSync.question('CN: Your first and last name (unknown): ')
+      if (!CN) {
+        CN = 'unknown'
+      }
+
+      let O = readlineSync.question('O: Name of your organization (unknown): ')
+      if (!O) {
+        O = 'unknown'
+      }
+
+      let OU = readlineSync.question('OU: Name of your organizational unit (unknown): ')
+      if (!OU) {
+        OU = 'unknown'
+      }
+
+      let L = readlineSync.question('L: Name of your city or locality (unknown): ')
+      if (!L) {
+        L = 'unknown'
+      }
+
+      let ST = readlineSync.question('ST: Name of your state or province (unknown): ')
+      if (!ST) {
+        ST = 'unknown'
+      }
+
+      let C = readlineSync.question('C: Two-letter country code (unknown): ')
+      if (!C) {
+        C = 'unknown'
+      }
+
+      let dname = `CN=${CN}, OU=${OU}, O=${O}, L=${L}, ST=${ST}, C=${C}`
+
+      g.log('Watch me create this android.keystore file for you...')
+
+      let cmd = exec('"' + keytool + '" -genkey -v -keystore android.keystore -alias "' + alias + '" -keyalg RSA -keysize 2048 -validity 10000 -storepass "' + pass + '" -keypass "' + pass + '" -dname "' + dname + '"')
+      cmd.stderr.pipe(process.stderr)
+
+      cmd.on('close', (code) => {
+        if (code > 0) {
+          g.fatal('Keytool died. :\'(')
+        }
+
+        if (fs.existsSync('android.keystore')) {
+          let pubMateJson = g.readPubmateJson()
+          pubMateJson.android.keystore = 'android.keystore'
+          pubMateJson.android.storepass = pass
+          pubMateJson.android.keypass = pass
+          pubMateJson.android.key = alias
+          g.savePubmateJson(pubMateJson)
+
+          g.log("Wonderful. From now on just make sure pubmate.json and android.keystore are on a safe place. You will need it.")
+          resolve()
+        } else {
+          g.fatal("Not sure what the hell is going on here. The keytool didn't fail but the android.keystore file is missing.")
+        }
+      })
     })
   },
 
@@ -225,19 +305,24 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Signing the APK...')
 
+      let signed = path.normalize('pubmate/android-release-signed.apk')
+
       if (!fs.existsSync('pubmate')) {
         fs.mkdirSync('pubmate')
+      } else if (fs.existsSync(signed)) {
+        fs.unlinkSync(signed)
       }
 
       let pubMateJson = g.readPubmateJson()
-      let keystore, key, pass
+      let keystore, key, storepass, keypass
 
-      if (pubMateJson.android.keystore && pubMateJson.android.key && pubMateJson.android.pass) {
+      if (pubMateJson.android.keystore && pubMateJson.android.key && pubMateJson.android.keypass && pubMateJson.android.storepass) {
         keystore = pubMateJson.android.keystore
-        pass = pubMateJson.android.pass
-        key = pubMateJson.android.pass
+        storepass = pubMateJson.android.storepass
+        keypass = pubMateJson.android.keypass
+        key = pubMateJson.android.key
 
-        let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + pass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
+        let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
         cmd.stderr.pipe(process.stderr)
 
         cmd.on('close', (code) => {
@@ -245,8 +330,8 @@ module.exports = {
             g.fatal('Jarsigner died. :\'(')
           }
 
-          if (fs.existsSync(path.normalize('pubmate/android-release-signed.apk'))) {
-            g.steps.android.signed = path.normalize('pubmate/android-release-signed.apk')
+          if (fs.existsSync(signed)) {
+            g.steps.android.signed = signed
             g.log("Alright, good.")
             resolve()
           } else {
@@ -260,8 +345,34 @@ module.exports = {
           keystore = readlineSync.question('Where is it (path)?: ')
 
           if (fs.existsSync(path.normalize(keystore))) {
-            key = readlineSync.question('Where is it (path)?: ')
-            pass = readlineSync.question('Where is it (path)?: ')
+            storepass = readlineSync.question('What is the store pass?: ')
+            key = readlineSync.question('What is the key alias?: ')
+            keypass = readlineSync.question('What is the key pass?: ')
+
+            let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
+            cmd.stderr.pipe(process.stderr)
+
+            cmd.on('close', (code) => {
+              if (code > 0) {
+                g.fatal('Jarsigner died. :\'(')
+              }
+
+              if (fs.existsSync(signed)) {
+                g.steps.android.signed = signed
+
+                let pubMateJson = g.readPubmateJson()
+                pubMateJson.android.keystore = keystore
+                pubMateJson.android.storepass = storepass
+                pubMateJson.android.keypass = keypass
+                pubMateJson.android.key = key
+                g.savePubmateJson(pubMateJson)
+
+                g.log("Alright, good.")
+                resolve()
+              } else {
+                g.fatal("The signing failed. Wrong store or key pass or key alias?")
+              }
+            })
           } else {
             g.log('This file does not exist. Sort it and try again.')
           }
@@ -284,7 +395,11 @@ module.exports = {
 
       let aligned = path.normalize('pubmate/android-release-signed-aligned.apk')
 
-      let cmd = exec('"'+global.formatPath(global.zipAlignerPath)+'" -f 4 "' + g.steps.android.signed + '" "' + aligned + '"')
+      if (fs.existsSync(aligned)) {
+        fs.unlinkSync(aligned)
+      }
+
+      let cmd = exec('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + aligned + '"')
       cmd.stderr.pipe(process.stderr)
 
       cmd.on('close', (code) => {
@@ -306,7 +421,7 @@ module.exports = {
   finish () {
     return new Promise((resolve, reject) => {
       if (fs.existsSync(g.steps.android.signed)) {
-        fs.unlink(g.steps.android.signed)
+        fs.unlinkSync(g.steps.android.signed)
       }
 
       g.log("Okay you've got your Android APK at: " + g.steps.android.signedAligned)
