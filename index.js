@@ -4,6 +4,7 @@ const commandExists = require('command-exists').sync
 const fs = require('fs')
 const readlineSync = require('readline-sync')
 const path = require('path')
+const xmlParser = require('xml2json')
 
 global.g = global
 
@@ -101,8 +102,38 @@ g.cli = {
   ios: {
     usage: "pubmate ios\n- Creates publishable file(s) for the iOS version.",
     async handler () {
-      g.log('==========')
-      g.log('iOS...')
+      let platforms = Object.keys(g.readPlatformsJson())
+
+      if (platforms.indexOf('ios') > -1) {
+        g.log('==========')
+        g.log('iOS...')
+        await g.steps.ios.checkBuildConfig()
+        await g.steps.ios.buildRelease()
+        await g.steps.ios.finish()
+      } else {
+        g.log('No iOS platform in this Cordova project. You can add it using: cordova plaform add ios')
+        let doIt = readlineSync.question('Do you want me to do the job for you? (Y/n): ')
+
+        if (doIt) {
+          g.log('Okay then...')
+
+          let cmd = exec('cordova plaform add ios')
+          cmd.stderr.pipe(process.stderr)
+
+          cmd.on('close', async (code) => {
+            if (code > 0) {
+              g.fatal('Cordova died. :\'(')
+            }
+
+            g.log('Done.')
+            await g.steps.ios.checkBuildConfig()
+            await g.steps.ios.buildRelease()
+            await g.steps.ios.finish()
+          })
+        } else {
+          g.log('Up to you.')
+        }
+      }
     }
   },
 
@@ -156,6 +187,14 @@ g.cli = {
 }
 
 g.steps = {
+  async publishingSteps (platform) {
+    await g.steps.checkForCordova()
+    await g.steps.checkForCordovaProject()
+    await g.steps.readCordovaConfig()
+    await g.steps.prepareProject()
+    await g.cli[platform].handler()
+  },
+
   checkForCordova () {
     return new Promise((resolve, reject) => {
       g.log('Checking if Apache Cordova is installed...')
@@ -181,6 +220,17 @@ g.steps = {
     })
   },
 
+  readCordovaConfig () {
+    return new Promise((resolve, reject) => {
+      g.log('Reading the Cordova config...')
+
+      let xml = fs.readFileSync('config.xml')
+      g.steps.config = xmlParser.toJson(xml)
+
+      resolve()
+    })
+  },
+
   prepareProject () {
     return new Promise((resolve, reject) => {
       g.log('Running the \'prepare\' command here (installing missing plugins and platforms)...')
@@ -199,7 +249,8 @@ g.steps = {
     })
   },
 
-  android: require('./android')
+  android: require('./android'),
+  ios: require('./ios')
 }
 
 async function startup() {
@@ -208,20 +259,14 @@ async function startup() {
       if (g.cli[process.argv[2]] == 'help') {
         g.cli.help.handler()
       } else {
-        await g.steps.checkForCordova()
-        await g.steps.checkForCordovaProject()
-        await g.steps.prepareProject()
-        await g.cli[process.argv[2]].handler()
+        await g.steps.publishingSteps(process.argv[2])
         g.log('Terminating, adios.')
       }
     } else {
       g.cli.help.handler()
     }
   } else {
-    await g.steps.checkForCordova()
-    await g.steps.checkForCordovaProject()
-    await g.steps.prepareProject()
-    await g.cli.all.handler()
+    await g.steps.publishingSteps('all')
     g.log('Terminating, adios.')
   }
 }

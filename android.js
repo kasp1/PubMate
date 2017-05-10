@@ -425,7 +425,7 @@ module.exports = {
       }
 
       g.log("Okay you've got your Android APK at: " + g.steps.android.signedAligned)
-      g.log('This is the file you want to upload to Google Play.')
+      g.log('This is the file you want to upload to Google Play Console.')
     })
   }
 }
