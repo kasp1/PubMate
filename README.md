@@ -12,7 +12,7 @@ Will support Android and iOS @v1.0.
 
 ```
        v0.7
-|=======    | 
+|=========  | 
        ^   ^
        |   | 
        |   iOS support
