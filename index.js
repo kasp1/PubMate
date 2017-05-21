@@ -73,7 +73,7 @@ g.cli = {
         g.log('No Android platform in this Cordova project. You can add it using: cordova plaform add android')
         let doIt = readlineSync.question('Do you want me to do the job for you? (Y/n): ')
 
-        if (doIt) {
+        if (doIt === 'Y') {
           g.log('Okay then...')
 
           let cmd = exec('cordova plaform add android')
@@ -107,14 +107,15 @@ g.cli = {
       if (platforms.indexOf('ios') > -1) {
         g.log('==========')
         g.log('iOS...')
-        await g.steps.ios.checkBuildConfig()
+        await g.steps.ios.checkBuildConfigExists()
+        await g.steps.ios.checkBuildConfigStructure()
         await g.steps.ios.buildRelease()
         await g.steps.ios.finish()
       } else {
         g.log('No iOS platform in this Cordova project. You can add it using: cordova plaform add ios')
         let doIt = readlineSync.question('Do you want me to do the job for you? (Y/n): ')
 
-        if (doIt) {
+        if (doIt === 'Y') {
           g.log('Okay then...')
 
           let cmd = exec('cordova plaform add ios')
@@ -126,12 +127,13 @@ g.cli = {
             }
 
             g.log('Done.')
-            await g.steps.ios.checkBuildConfig()
+            await g.steps.ios.checkBuildConfigExists()
+            await g.steps.ios.checkBuildConfigStructure()
             await g.steps.ios.buildRelease()
             await g.steps.ios.finish()
           })
         } else {
-          g.log('Up to you.')
+          g.log('Your choice.')
         }
       }
     }
@@ -225,7 +227,7 @@ g.steps = {
       g.log('Reading the Cordova config...')
 
       let xml = fs.readFileSync('config.xml')
-      g.steps.config = xmlParser.toJson(xml)
+      g.steps.config = JSON.parse(xmlParser.toJson(xml))
 
       resolve()
     })

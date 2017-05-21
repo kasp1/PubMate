@@ -393,7 +393,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Zip-aligning the APK...')
 
-      let aligned = path.normalize('pubmate/android-release-signed-aligned.apk')
+      let aligned = path.normalize('pubmate/android-release-signed-aligned-' + g.steps.config.widget.version + '.apk')
 
       if (fs.existsSync(aligned)) {
         fs.unlinkSync(aligned)

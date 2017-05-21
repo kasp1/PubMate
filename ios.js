@@ -1,9 +1,12 @@
 const fs = require('fs')
+const readlineSync = require('readline-sync')
+const exec = require('child_process').exec
+const path = require('path')
 
 module.exports = {
   buildConfig: null,
 
-  checkBuildConfig () {
+  checkBuildConfigExists () {
     return new Promise((resolve, reject) => {
       g.log("Let's check this buildConfig thing...")
 
@@ -11,30 +14,39 @@ module.exports = {
 
       if (fs.existsSync(pubMateJson.ios.buildConfig)) {
         g.steps.ios.buildConfig = pubMateJson.ios.buildConfig
+        resolve()
       } else {
         if (readlineSync.question('Do you have any buildConfig file for iOS? (Y/n): ') === 'Y') {
           let customBuildConfig = path.normalize(readlineSync.question('What is the path?: '))
 
           if (fs.existsSync(customBuildConfig)) {
             g.steps.ios.buildConfig = customBuildConfig
+            resolve()
           } else {
             g.fatal("This file doesn't exist. Sort yourself and your build config and try again.")
           }
         } else {
           if (readlineSync.question('Do you want me to create one for you? (Y/n): ') === 'Y') {
             g.steps.ios.createBuildConfig().then(() => {
+              g.steps.ios.buildConfig = 'iosbuild.json'
               resolve()
             })
           }
         }
       }
+    })
+  },
+
+  checkBuildConfigStructure () {
+    return new Promise((resolve, reject) => {
+      g.log("Let's check what's inside the buildConfig...")
 
       let buildConfigJson = JSON.parse(fs.readFileSync(g.steps.ios.buildConfig))
 
       if (buildConfigJson) {
         if (buildConfigJson.ios) {
           if (buildConfigJson.ios.release) {
-            if (buildConfigJson.ios.release.provisioningProfile && buildConfigJson.ios.release.developmentTeam && buildConfigJson.ios.packageType) {
+            if (buildConfigJson.ios.release.provisioningProfile && buildConfigJson.ios.release.developmentTeam && buildConfigJson.ios.release.packageType) {
               let pubMateJson = g.readPubmateJson()
               pubMateJson.ios.buildConfig = g.steps.ios.buildConfig
               g.savePubmateJson(pubMateJson)
@@ -102,7 +114,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Gonna build this...')
 
-      let cmd = exec('cordova build ios --device --release --buildConfig ' + path.normalize(g.steps.ios.buildConfig))
+      let cmd = exec('cordova build ios --device --release --buildConfig ' + path.normalize(g.steps.ios.buildConfig), { maxBuffer: 100000*1024 })
       cmd.stderr.pipe(process.stderr)
 
       cmd.on('close', (code) => {
@@ -111,18 +123,20 @@ module.exports = {
         }
 
         let build = path.normalize('./platforms/ios/build/device/' + g.steps.config.widget.name + '.ipa')
-        let dist = path.normalize('pubmate/ios-release-signed-' + g.steps.config.version + '.ipa')
-
-        console.log(build)
+        let dist = path.normalize('pubmate/ios-release-signed-' + g.steps.config.widget.version + '.ipa')
 
         if (fs.existsSync(build)) {
+          if (!fs.existsSync('pubmate')) {
+            fs.mkdirSync('pubmate')
+          }
+
           fs.createReadStream(build).pipe(fs.createWriteStream(dist))
 
           g.steps.ios.build = dist
-          g.log("OK, cool.")
+          g.log('OK, cool.')
           resolve()
         } else {
-          g.fatal("The build failed.")
+          g.fatal('The build failed.')
         }
       })
     })
@@ -130,10 +144,6 @@ module.exports = {
 
   finish () {
     return new Promise((resolve, reject) => {
-      if (fs.existsSync(g.steps.ios.build)) {
-        fs.unlinkSync(g.steps.ios.build)
-      }
-
       g.log("Okay you've got your iOS IPA at: " + g.steps.ios.build)
       g.log('This is the file you want to upload to iTunes Connect.')
     })
