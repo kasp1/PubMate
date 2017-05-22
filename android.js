@@ -191,7 +191,16 @@ module.exports = {
           g.fatal('Cordova died. :\'(')
         }
 
-        if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/android-release-unsigned.apk'))) {
+        if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/android-armv7-release-unsigned.apk'))) {
+          g.steps.android.unsigned = path.normalize('./platforms/android/build/outputs/apk/android-armv7-release-unsigned.apk')
+
+          if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/android-x86-release-unsigned.apk'))) {
+            g.steps.android.unsignedX86 = path.normalize('./platforms/android/build/outputs/apk/android-x86-release-unsigned.apk')
+          }
+
+          g.log("OK, cool.")
+          resolve()
+        } else if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/android-release-unsigned.apk'))) {
           g.steps.android.unsigned = path.normalize('./platforms/android/build/outputs/apk/android-release-unsigned.apk')
           g.log("OK, cool.")
           resolve()
@@ -307,6 +316,10 @@ module.exports = {
 
       let signed = path.normalize('pubmate/android-release-signed.apk')
 
+      if (g.steps.android.unsignedX86) {
+        var signedX86 = path.normalize('pubmate/android-release-x86-signed.apk')
+      }
+
       if (!fs.existsSync('pubmate')) {
         fs.mkdirSync('pubmate')
       } else if (fs.existsSync(signed)) {
@@ -322,7 +335,7 @@ module.exports = {
         keypass = pubMateJson.android.keypass
         key = pubMateJson.android.key
 
-        let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
+        let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
         cmd.stderr.pipe(process.stderr)
 
         cmd.on('close', (code) => {
@@ -332,8 +345,28 @@ module.exports = {
 
           if (fs.existsSync(signed)) {
             g.steps.android.signed = signed
-            g.log("Alright, good.")
-            resolve()
+
+            if (g.steps.android.unsignedX86) {
+              cmd2 = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsignedX86 + '" ' + key + ' -signedjar "' + signedX86 + '"')
+              cmd2.stderr.pipe(process.stderr)
+
+              cmd2.on('close', (code) => {
+                if (code > 0) {
+                  g.fatal('Jarsigner died. :\'(')
+                }
+
+                if (fs.existsSync(signedX86)) {
+                  g.steps.android.signedX86 = signedX86
+                  g.log("Alright, good.")
+                  resolve()
+                } else {
+                  g.fatal("The signing failed.")
+                }
+              })
+            } else {
+              g.log("Alright, good.")
+              resolve()
+            }
           } else {
             g.fatal("The signing failed.")
           }
@@ -395,6 +428,10 @@ module.exports = {
 
       let aligned = path.normalize('pubmate/android-release-signed-aligned-' + g.steps.config.widget.version + '.apk')
 
+      if (g.steps.android.signedX86) {
+        var alignedX86 = path.normalize('pubmate/android-release-x86-signed-aligned-' + g.steps.config.widget.version + '.apk')
+      }
+
       if (fs.existsSync(aligned)) {
         fs.unlinkSync(aligned)
       }
@@ -409,8 +446,28 @@ module.exports = {
 
         if (fs.existsSync(aligned)) {
           g.steps.android.signedAligned = aligned
-          g.log("Awesome.")
-          resolve()
+
+          if (g.steps.android.signedX86) {
+            let cmd2 = exec('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + alignedX86 + '"')
+            cmd2.stderr.pipe(process.stderr)
+
+            cmd2.on('close', (code) => {
+              if (code > 0) {
+                g.fatal('Zipaligner died. :\'(')
+              }
+
+              if (fs.existsSync(alignedX86)) {
+                g.steps.android.signedAlignedX86 = alignedX86
+                g.log("Awesome.")
+                resolve()
+              } else {
+                g.fatal("The zip aligning failed.")
+              }
+            })
+          } else {
+            g.log("Awesome.")
+            resolve()
+          }
         } else {
           g.fatal("The zip aligning failed.")
         }
@@ -424,8 +481,21 @@ module.exports = {
         fs.unlinkSync(g.steps.android.signed)
       }
 
-      g.log("Okay you've got your Android APK at: " + g.steps.android.signedAligned)
-      g.log('This is the file you want to upload to Google Play Console.')
+      if (g.steps.android.signedX86) {
+        if (fs.existsSync(g.steps.android.signedX86)) {
+          fs.unlinkSync(g.steps.android.signedX86)
+        }
+      }
+
+      if (g.steps.android.signedX86) {
+        g.log("Okay you've got your Android APKs at: " + g.steps.android.signedAligned + ' and ' + g.steps.android.signedAlignedX86)
+        g.log('This is the files you want to upload to Google Play Console.')
+      } else {
+        g.log("Okay you've got your Android APK at: " + g.steps.android.signedAligned)
+        g.log('This is the file you want to upload to Google Play Console.')
+      }
+
+      resolve()
     })
   }
 }

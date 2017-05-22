@@ -146,6 +146,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log("Okay you've got your iOS IPA at: " + g.steps.ios.build)
       g.log('This is the file you want to upload to iTunes Connect.')
+      resolve()
     })
   }
 }

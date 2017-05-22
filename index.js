@@ -148,10 +148,10 @@ g.cli = {
 
       g.log('Okay, what do we have here...')
 
-      if (platforms.length === 1) {
-        g.log('Just ' + platforms[0] + '.')
+      if (platforms.length > 1) {
+        g.log(platforms.join(', '))
       } else {
-        g.log(Object.keys(platforms).join(', '))
+        g.log('Just ' + platforms[0] + '.')
       }
 
       g.log("Alright, let's do this.")
