@@ -11,8 +11,8 @@ Will support Android and iOS @v1.0.
 ## Progress
 
 ```
-       v0.9
-|========= | 
+       v1.0
+|==========| 
        ^  ^
        |  | 
        |  iOS support
