@@ -46,3 +46,7 @@ Assuming you have already installed XCode (you would have need it for dev testin
 2. Take a note of UUIDs of any provisioning profiles already installed in this directory. Once you install the provisioning profile you have just donwloaded, you will be able to figure out what is its UUID knowing it's new there.
 3. Double click the downloaded provisioning profile's file. It will just do the *launch effect*, but nothing will happen (only XCode might run on background). The provisioning profile will now install to `/Users/You/Library/MobileDevice/Provisioning Profiles/` and will have its UUID as the file name, e.g.: `f44b07a7-d394-4aeb-8757-7cf3e5339da5.mobileprovision`.
 4. Re-run `$ pubmate` or `$ pubmate ios` and input this UUID when asked.
+
+## If you have too many provisioning profiles
+
+I just figured out you can actually open the provisioning profile files in a text editor. I was expecting these files to be binary, but they seem to be XML. You can open them to figure out what app are the provisioning profiles for. I might add something to **PubMate** which will list these files with the app they are for.
