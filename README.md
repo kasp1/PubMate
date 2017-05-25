@@ -6,19 +6,7 @@ Build for release and publish Cordova apps easily. Repetitive deploy simplified.
 
 **Requires Node.js >= v7.6.0**
 
-Will support Android and iOS @v1.0.
-
-## Progress
-
-```
-       v1.0
-|==========| 
-       ^  ^
-       |  | 
-       |  iOS support
-       |
-       Android support
-```
+![PubMate](pubmate.gif)
 
 ## Usage
 
