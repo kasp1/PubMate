@@ -1,6 +1,6 @@
 {
   "name": "pubmate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
   "main": "index.js",
   "scripts": {
