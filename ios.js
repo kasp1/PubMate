@@ -46,14 +46,14 @@ module.exports = {
       if (buildConfigJson) {
         if (buildConfigJson.ios) {
           if (buildConfigJson.ios.release) {
-            if (buildConfigJson.ios.release.provisioningProfile && buildConfigJson.ios.release.developmentTeam && buildConfigJson.ios.release.packageType) {
+            if (buildConfigJson.ios.release.developmentTeam && buildConfigJson.ios.release.packageType) {
               let pubMateJson = g.readPubmateJson()
               pubMateJson.ios.buildConfig = g.steps.ios.buildConfig
               g.savePubmateJson(pubMateJson)
 
               resolve()
             } else {
-              g.fatal('This build config does not contain the ios.release.provisioningProfile, ios.release.developmentTeam or ios.release.packageType keys, fix it or create a new one nigga.')
+              g.fatal('This build config does not contain the ios.release.developmentTeam or ios.release.packageType keys, fix it or create a new one nigga.')
             }
           } else {
             g.fatal('This build config does not contain the ios.release key, fix it or create a new one nigga.')
