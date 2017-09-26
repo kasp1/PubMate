@@ -1,6 +1,6 @@
 {
   "name": "pubmate",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Build and publish Cordova apps easily. Repetitive deploy simplified.",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kasp1/LazyPub.git"
+    "url": "git+https://github.com/kasp1/PubMate.git"
   },
   "keywords": [
     "apache",
@@ -27,9 +27,9 @@
   "author": "Miroslav Kaspar",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kasp1/LazyPub/issues"
+    "url": "https://github.com/kasp1/PubMate/issues"
   },
-  "homepage": "https://github.com/kasp1/LazyPub#readme",
+  "homepage": "https://github.com/kasp1/PubMate#readme",
   "dependencies": {
     "command-exists": "^1.2.2",
     "readline-sync": "^1.4.7",
