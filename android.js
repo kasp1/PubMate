@@ -125,8 +125,10 @@ module.exports = {
           }
         }
 
+        console.log(path.normalize(sdkPath + '/build-tools'))
+
         if (!fs.existsSync(path.normalize(sdkPath + '/build-tools'))) {
-          g.fatal('The build tools directory is non-existent in your Android SDK. How ancient SDK is this? Update it and re-run this.')
+          g.fatal('The build-tools directory is non-existent in your Android SDK. How much ancient SDK is this? Update it and re-run this.')
         }
 
         let apis = fs.readdirSync(sdkPath + '/build-tools')
@@ -161,17 +163,17 @@ module.exports = {
             }
           }
 
-          highest = highest.join('.')
+          targetApi = highest.join('.')
 
-          g.log('Which is ' + highest + " - don't worry, the zip align tool normally works same for all API levels.")
+          g.log('Which is ' + targetApi + " - don't worry, the zip align tool normally works same for all API levels.")
         }
 
-        if (fs.existsSync(path.normalize(sdkPath + '/build-tools/' + highest + '/zipalign'))) {
-          g.steps.android.zipaligner = path.normalize(sdkPath + '/build-tools/' + highest + '/zipalign')
-        } else if (fs.existsSync(path.normalize(sdkPath + '/build-tools/' + highest + '/zipalign.exe'))) {
-          g.steps.android.zipaligner = path.normalize(sdkPath + '/build-tools/' + highest + '/zipalign.exe')
+        if (fs.existsSync(path.normalize(sdkPath + '/build-tools/' + targetApi + '/zipalign'))) {
+          g.steps.android.zipaligner = path.normalize(sdkPath + '/build-tools/' + targetApi + '/zipalign')
+        } else if (fs.existsSync(path.normalize(sdkPath + '/build-tools/' + targetApi + '/zipalign.exe'))) {
+          g.steps.android.zipaligner = path.normalize(sdkPath + '/build-tools/' + targetApi + '/zipalign.exe')
         } else {
-          g.fatal('The zip align tool is not there (' + path.normalize(sdkPath + '/build-tools/' + highest + '/zipalign[.exe]') + '). What sort of things have you done to your Android SDK? You better reinstall build tools for this API level (' + highest + ').')
+          g.fatal('The zip align tool is not there (' + path.normalize(sdkPath + '/build-tools/' + targetApi + '/zipalign[.exe]') + '). What sort of things have you done to your Android SDK? You better reinstall build tools for this API level (' + highest + ').')
         }
       }
 
@@ -224,14 +226,14 @@ module.exports = {
       if (commandExists('keytool')) {
         keytool = 'keytool'
       } else {
-        if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/Commands/keytool'))) {
-          keytool = path.normalize(g.steps.android.jdkpath + '/Commands/keytool')
-        } else if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/bin/keytool'))) {
-          keytool = path.normalize(g.steps.android.jdkpath + '/bin/keytool')
-        } else if (fs.existsSync(path.normalize(g.steps.android.jdkpath + '/bin/keytool.exe'))) {
-          keytool = path.normalize(g.steps.android.jdkpath + '/bin/keytool.exe')
+        if (fs.existsSync(path.normalize(g.steps.android.jdkPath + '/Commands/keytool'))) {
+          keytool = path.normalize(g.steps.android.jdkPath + '/Commands/keytool')
+        } else if (fs.existsSync(path.normalize(g.steps.android.jdkPath + '/bin/keytool'))) {
+          keytool = path.normalize(g.steps.android.jdkPath + '/bin/keytool')
+        } else if (fs.existsSync(path.normalize(g.steps.android.jdkPath + '/bin/keytool.exe'))) {
+          keytool = path.normalize(g.steps.android.jdkPath + '/bin/keytool.exe')
         } else {
-          g.fatal('The keytool tool is not there (' + path.normalize(g.steps.android.jdkpath + '/<bin|Commands>/keytool[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
+          g.fatal('The keytool tool is not there (' + path.normalize(g.steps.android.jdkPath + '/<bin|Commands>/keytool[.exe]') + '). What sort of things have you done to your JDK? You better reinstall it.')
         }
       }
 
@@ -335,6 +337,7 @@ module.exports = {
         keypass = pubMateJson.android.keypass
         key = pubMateJson.android.key
 
+        console.log('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
         let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
         cmd.stderr.pipe(process.stderr)
 

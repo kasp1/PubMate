@@ -185,7 +185,38 @@ g.cli = {
         console.log(g.cli[command].usage)
       }
     }
-  }
+  },
+
+  'create-keystore': {
+    usage: "pubmate android\n- Creates a keystore that may be used to sign Android APKs.",
+    async handler () {
+      g.log('Creating a keystore...')
+      await g.steps.android.findJarSigner()
+      await g.steps.android.createKeystore()
+      g.log('The keystore android.keystore is ready for you in this directory, imporant information has been saved to pubmate.json.')
+    }
+  },
+
+  'sign-and-zipalign': {
+    usage: "pubmate android\n- Signs and zip-aligns an Android APK.",
+    async handler () {
+      g.log('Signing and zipaligning specific APK...')
+      await g.steps.android.findJarSigner()
+      await g.steps.android.findZipAligner()
+
+      let apk = readlineSync.question('Which APK should be signed and zip-aligned? (path to the APK): ')
+      while (!fs.existsSync(apk)) {
+        apk = readlineSync.question('Non-existent file, try again. (path to the APK): ')
+      }
+
+      g.steps.android.unsigned = path.normalize(apk)
+      g.log("OK, cool.")
+
+      await g.steps.android.sign()
+      await g.steps.android.align()
+      await g.steps.android.finish()
+    }
+  },
 }
 
 g.steps = {
@@ -258,11 +289,13 @@ g.steps = {
 async function startup() {
   if (process.argv[2]) {
     if (g.cli[process.argv[2]]) {
-      if (g.cli[process.argv[2]] == 'help') {
-        g.cli.help.handler()
-      } else {
-        await g.steps.publishingSteps(process.argv[2])
-        g.log('Terminating, adios.')
+      switch (process.argv[2]) {
+        case 'help': g.cli.help.handler(); break
+        case 'create-keystore': await g.cli['create-keystore'].handler(); break
+        case 'sign-and-zipalign': await g.cli['sign-and-zipalign'].handler(); break
+        default:
+          await g.steps.publishingSteps(process.argv[2])
+          g.log('Terminating, adios.')
       }
     } else {
       g.cli.help.handler()
