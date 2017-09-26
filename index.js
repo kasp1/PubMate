@@ -287,6 +287,13 @@ g.steps = {
 }
 
 async function startup() {
+  if (process.argv.indexOf('--verbose') >= 0) {
+    g.cli.verbose = true
+    g.log('Speechy mode activated.')
+  } else {
+    g.cli.verbose = false
+  }
+
   if (process.argv[2]) {
     if (g.cli[process.argv[2]]) {
       switch (process.argv[2]) {

@@ -114,8 +114,14 @@ module.exports = {
     return new Promise((resolve, reject) => {
       g.log('Gonna build this...')
 
+      if (g.cli.verbose) {
+        console.log('cordova build ios --device --release --buildConfig ' + path.normalize(g.steps.ios.buildConfig))
+      }
       let cmd = exec('cordova build ios --device --release --buildConfig ' + path.normalize(g.steps.ios.buildConfig), { maxBuffer: 100000*1024 })
       cmd.stderr.pipe(process.stderr)
+      if (g.cli.verbose) {
+        cmd.stdout.pipe(process.stdout)
+      }
 
       cmd.on('close', (code) => {
         if (code > 0) {

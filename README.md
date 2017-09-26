@@ -10,11 +10,11 @@ Build for release and publish Cordova apps easily. Repetitive deploy simplified.
 
 ## Usage
 
-Build all supported platforms (that are listed at `platforms/platforms.json`):
+If you are inside a Cordova project directory, to build all supported platforms (that are listed at `platforms/platforms.json`):
 
 `$ pubmate`
 
-Specific platform:
+To build a specific platform:
 
 `$ pubmate <platform>` e.g.: `$ pubmate android`
 
@@ -22,6 +22,14 @@ Help:
 
 `$ pubmate help`
 
+Create a new keystore (for signing Android APKs) and nothing else:
+
+`$ pubmate create-keystore` (run in your project's directory)
+
+Sign and zip-align any unsigned APK (even non-Cordova builds, React-Native, etc):
+
+`$ pubmate sign-and-zipalign` (run in your project's directory)
+
 ## Support
 
-Chat me on Gitter.
+Chat me on [Gitter](https://gitter.im/kasp1).

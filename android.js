@@ -125,8 +125,6 @@ module.exports = {
           }
         }
 
-        console.log(path.normalize(sdkPath + '/build-tools'))
-
         if (!fs.existsSync(path.normalize(sdkPath + '/build-tools'))) {
           g.fatal('The build-tools directory is non-existent in your Android SDK. How much ancient SDK is this? Update it and re-run this.')
         }
@@ -185,8 +183,15 @@ module.exports = {
   buildRelease () {
     return new Promise((resolve, reject) => {
       g.log('Gonna build this...')
+
+      if (g.cli.verbose) {
+        console.log('cordova build android --release')
+      }
       let cmd = exec('cordova build android --release')
       cmd.stderr.pipe(process.stderr)
+      if (g.cli.verbose) {
+        cmd.stdout.pipe(process.stdout)
+      }
 
       cmd.on('close', (code) => {
         if (code > 0) {
@@ -287,8 +292,14 @@ module.exports = {
 
       g.log('Watch me create this android.keystore file for you...')
 
+      if (g.cli.verbose) {
+        console.log('"' + keytool + '" -genkey -v -keystore android.keystore -alias "' + alias + '" -keyalg RSA -keysize 2048 -validity 10000 -storepass "' + pass + '" -keypass "' + pass + '" -dname "' + dname + '"')
+      }
       let cmd = exec('"' + keytool + '" -genkey -v -keystore android.keystore -alias "' + alias + '" -keyalg RSA -keysize 2048 -validity 10000 -storepass "' + pass + '" -keypass "' + pass + '" -dname "' + dname + '"')
       cmd.stderr.pipe(process.stderr)
+      if (g.cli.verbose) {
+        cmd.stdout.pipe(process.stdout)
+      }
 
       cmd.on('close', (code) => {
         if (code > 0) {
@@ -337,9 +348,14 @@ module.exports = {
         keypass = pubMateJson.android.keypass
         key = pubMateJson.android.key
 
-        console.log('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
+        if (g.cli.verbose) {
+          console.log('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
+        }
         let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + signed + '"')
         cmd.stderr.pipe(process.stderr)
+        if (g.cli.verbose) {
+          cmd.stdout.pipe(process.stdout)
+        }
 
         cmd.on('close', (code) => {
           if (code > 0) {
@@ -350,8 +366,14 @@ module.exports = {
             g.steps.android.signed = signed
 
             if (g.steps.android.unsignedX86) {
+              if (g.cli.verbose) {
+                console.log('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsignedX86 + '" ' + key + ' -signedjar "' + signedX86 + '"')
+              }
               cmd2 = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsignedX86 + '" ' + key + ' -signedjar "' + signedX86 + '"')
               cmd2.stderr.pipe(process.stderr)
+              if (g.cli.verbose) {
+                cmd.stdout.pipe(process.stdout)
+              }
 
               cmd2.on('close', (code) => {
                 if (code > 0) {
@@ -385,8 +407,14 @@ module.exports = {
             key = readlineSync.question('What is the key alias?: ')
             keypass = readlineSync.question('What is the key pass?: ')
 
+            if (g.cli.verbose) {
+              console.log('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
+            }
             let cmd = exec('"' + g.steps.android.jarsigner + '" -verbose -storepass "' + storepass + '" -keypass "' + keypass + '" -sigalg SHA1withRSA -digestalg SHA1 -keystore "' + keystore + '" "' + g.steps.android.unsigned + '" ' + key + ' -signedjar "' + path.normalize('pubmate/android-release-signed.apk') + '"')
             cmd.stderr.pipe(process.stderr)
+            if (g.cli.verbose) {
+              cmd.stdout.pipe(process.stdout)
+            }
 
             cmd.on('close', (code) => {
               if (code > 0) {
@@ -439,8 +467,14 @@ module.exports = {
         fs.unlinkSync(aligned)
       }
 
+      if (g.cli.verbose) {
+        console.log('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + aligned + '"')
+      }
       let cmd = exec('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + aligned + '"')
       cmd.stderr.pipe(process.stderr)
+      if (g.cli.verbose) {
+        cmd.stdout.pipe(process.stdout)
+      }
 
       cmd.on('close', (code) => {
         if (code > 0) {
@@ -451,8 +485,14 @@ module.exports = {
           g.steps.android.signedAligned = aligned
 
           if (g.steps.android.signedX86) {
+            if (g.cli.verbose) {
+              console.log('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + alignedX86 + '"')
+            }
             let cmd2 = exec('"' + g.steps.android.zipaligner + '" -f 4 "' + g.steps.android.signed + '" "' + alignedX86 + '"')
             cmd2.stderr.pipe(process.stderr)
+            if (g.cli.verbose) {
+              cmd2.stdout.pipe(process.stdout)
+            }
 
             cmd2.on('close', (code) => {
               if (code > 0) {
