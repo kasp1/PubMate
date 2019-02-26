@@ -198,17 +198,17 @@ module.exports = {
           g.fatal('Cordova died. :\'(')
         }
 
-        if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/release/android-armv7-release-unsigned.apk'))) {
-          g.steps.android.unsigned = path.normalize('./platforms/android/build/outputs/apk/release/android-armv7-release-unsigned.apk')
+        if (fs.existsSync(path.normalize('./platforms/android/app/build/outputs/apk/release/app-armv7-release-unsigned.apk'))) {
+          g.steps.android.unsigned = path.normalize('./platforms/android/app/build/outputs/apk/release/app-armv7-release-unsigned.apk')
 
-          if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/release/android-x86-release-unsigned.apk'))) {
-            g.steps.android.unsignedX86 = path.normalize('./platforms/android/build/outputs/apk/release/android-x86-release-unsigned.apk')
+          if (fs.existsSync(path.normalize('./platforms/android/app/build/outputs/apk/release/app-x86-release-unsigned.apk'))) {
+            g.steps.android.unsignedX86 = path.normalize('./platforms/android/app/build/outputs/apk/release/app-x86-release-unsigned.apk')
           }
 
           g.log("OK, cool.")
           resolve()
-        } else if (fs.existsSync(path.normalize('./platforms/android/build/outputs/apk/release/android-release-unsigned.apk'))) {
-          g.steps.android.unsigned = path.normalize('./platforms/android/build/outputs/apk/release/android-release-unsigned.apk')
+        } else if (fs.existsSync(path.normalize('./platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk'))) {
+          g.steps.android.unsigned = path.normalize('./platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk')
           g.log("OK, cool.")
           resolve()
         } else {
